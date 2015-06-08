@@ -1,4 +1,4 @@
 pacoche
 =======
 
-Pacoche wildlife refuge, dataset and code
+Pacoche wildlife refuge, Occupancy dataset and code
