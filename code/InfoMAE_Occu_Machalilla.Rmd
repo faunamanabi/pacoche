@@ -1,0 +1,621 @@
+
+---
+title: Ocupación, bajo el modelo estático (MacKenzie et al. 2002) para para las especies
+  de mamíferos en el Parque Nacional Machalilla
+author: Departamento Central de Investigaciones (DCI), \break Universidad Laica Eloy
+  Alfaro de Manabi (ULEAM)
+date: "Abril, 2015"
+output:
+  word_document:
+    highlight: kate
+  pdf_document:
+    highlight: tango
+    number_sections: yes
+    toc: yes
+  html_document:
+    toc: yes
+license: CC
+box: grey
+---
+
+
+\newcommand{\HRule}[1]{\hfill \rule{0.5\linewidth}{#1}} % Horizontal rule at the bottom of the page, adjust width here
+
+%%%%%% Logo
+\vspace{0.2in}
+\centerline {
+  \includegraphics[width=1in]{img/ULEAM_DCI.png}
+}
+\vspace{0.1in}
+
+
+
+ 
+\hfill Diego J. Lizcano\
+\hfill \texttt{http://dlizcano.github.io/about} \
+\hfill \texttt{dj.lizcano@gmail.com} \
+\HRule{1pt} 
+
+
+# Duración del muestreo
+
+Las trampas cámara permanecieron activas desde final de septiembre 204 hasta comienzos de marzo 2015.
+ 
+
+```{r calendar1,cache=TRUE,warning=FALSE,eval=TRUE, echo=FALSE,fig.height=11,fig.width=7}
+
+# library(xtable)
+library(lubridate)
+library(dplyr)
+library(maptools)
+# Load 'rgdal' package, which is used to read/write shapefiles and rasters
+library(rgdal)
+source("C:/Users/Diego/Documents/CodigoR/ULEAM/Infor_Caract/code/TEAM_code.R")
+source("C:/Users/Diego/Documents/CodigoR/ULEAM/Infor_Caract/code/calendar.R")
+
+machalilla.raw<-read.csv("C:/Users/Diego/Documents/CodigoR/ULEAM/Infor_Caract/Data/CT-PNM-2014.csv") # ojo falta la camara 3-12
+
+#############################
+#### date fix
+#############################
+
+# unique(year(machalilla.raw$camera_trap_start_time))
+machalilla.raw$photo_date2<-as.Date(as.character(machalilla.raw$photo_date), "%d-%b-%Y")
+
+machalilla.raw$Sampling.Period<-2014
+machalilla.raw$binomial<-paste(machalilla.raw$genus, machalilla.raw$specise, sep = " ")
+
+#############################
+# translate months
+#############################
+# 
+# meses<-as.data.frame(t(matrix(c("ago","aug","dic","dec","ene","jan","abr","apr"),nrow = 2,ncol = 4)))
+# machalilla.raw$camera_trap_start_time2<-NA
+# machalilla.raw$camera_trap_end_time2<-NA
+# for (i in 1:4){  
+# # get month
+#   chkmes<-substr(as.character(machalilla.raw$photo_date), start=4, stop=6)
+#   chkmes2<-substr(as.character(machalilla.raw$camera_trap_start_time), start=4, stop=6)
+#   chkmes3<-substr(as.character(machalilla.raw$camera_trap_end_time), start=4, stop=6)
+#   # chane month
+#   agoind<-which(chkmes == meses[i,1])
+#   agoind2<-which(chkmes2 == meses[i,1])
+#   agoind3<-which(chkmes3 == meses[i,1])
+#   # machalilla.raw$photo_date[agoind]
+#   machalilla.raw$photo_date2[agoind]<-as.Date(gsub(as.character(meses[i,1]), 
+#                                                      as.character(meses[i,2]), 
+#                                                      machalilla.raw$photo_date[agoind]), "%d-%b-%Y")
+#   
+#   machalilla.raw$camera_trap_start_time2[agoind2]<-as.Date(gsub(as.character(meses[i,1]), 
+#                                                    as.character(meses[i,2]), 
+#                                                    machalilla.raw$camera_trap_start_time[agoind2]), "%d-%b-%Y")
+#   
+#   machalilla.raw$camera_trap_end_time2[agoind3]<-as.Date(gsub(as.character(meses[i,1]), 
+#                                                                as.character(meses[i,2]), 
+#                                                                machalilla.raw$camera_trap_end_time[agoind3]), "%d-%b-%Y")
+# }
+# 
+# # tochk
+# # unique(machalilla.raw$photo_date2)
+
+
+machalilla.raw$camera_trap_start_date<-as.Date(substr(as.character(machalilla.raw$camera_trap_start_time), start=1, stop=11), "%d-%b-%Y")
+machalilla.raw$camera_trap_end_date<-as.Date(substr(as.character(machalilla.raw$camera_trap_end_time), start=1, stop=11), "%d-%b-%Y")
+
+#################################
+# Fix 2011 problem
+# Two cameras have date wrong
+# CT-PNM-1-7  and  CT-PNM-3-10
+# Fix start date manually
+################################
+# identify the problem
+# index_problem_2011<-which(machalilla.raw$camera_trap_start_date == "2011-11-11")
+# problem_2011<-machalilla.raw[index_problem_2011,]
+# unique(problem_2011$camera_trap)
+
+
+
+# fix 1-7 just year
+index_1_07<-which(machalilla.raw$camera_trap == "CT-PNM-1-7")
+cam_1_07<-machalilla.raw[index_1_07, ] # make data frame using the cam
+machalilla.raw<-machalilla.raw[-index_1_07 ,] # remove the cam
+cam_1_07$camera_trap_start_date<-as.Date("2014-09-23", format="%Y-%m-%d")
+cam_1_07<-cam_1_07[-1,] # borra el primero porblematic 2011
+cam_1_07$photo_type[1]<-"Start" # fix start
+cam_1_07$camera_trap_end_date<-as.Date("2014-11-06", format="%Y-%m-%d")
+
+# fix 1-10  # add 31 days since data setup pickup en data 12 and beyond
+index_1_10<-which(machalilla.raw$camera_trap == "CT-PNM-1-10")
+cam_1_10<-machalilla.raw[index_1_10, ]
+machalilla.raw<-machalilla.raw[-index_1_10 ,]
+
+cam_1_10$camera_trap_start_date<-as.Date("2014-09-23", format="%Y-%m-%d") 
+cam_1_10$camera_trap_end_date<-as.Date("2014-11-05", format="%Y-%m-%d")
+cam_1_10$photo_date2[c(12:875)]<-cam_1_10$photo_date2[c(12:875)] +31
+# delete problematic data
+cam_1_10<-cam_1_10[-24,]
+cam_1_10<-cam_1_10[-25,]
+
+# fix 3-10  # restar 30 dias
+index_3_10<-which(machalilla.raw$camera_trap == "CT-PNM-3-10")
+cam_3_10<-machalilla.raw[index_3_10, ]
+machalilla.raw<-machalilla.raw[-index_3_10 ,]
+
+cam_3_10$camera_trap_start_date<-as.Date("2015-01-27", format="%Y-%m-%d") 
+cam_3_10$camera_trap_end_date<-as.Date("2015-03-15", format="%Y-%m-%d")
+# borra los primeros 30 problematicos con fecha 2011
+cam_3_10<-cam_3_10[-c(1:30),]
+cam_3_10$photo_date2<-cam_3_10$photo_date2  - 30
+
+
+# fix 3-07 # add difference of 365 days
+index_3_07<-which(machalilla.raw$camera_trap == "CT-PNM-3-07")
+cam_3_07<-machalilla.raw[index_3_07, ]
+
+machalilla.raw<-machalilla.raw[- index_3_07 ,]
+cam_3_07$camera_trap_start_date<-as.Date("2015-01-27", format="%Y-%m-%d")
+cam_3_07$camera_trap_end_date<-as.Date("2015-03-11", format="%Y-%m-%d")
+cam_3_07$photo_date2<- cam_3_07$photo_date2 + 365
+
+### remove from machalilla.raw
+# machalilla.raw<-machalilla.raw[-index_1_07 ,]
+# machalilla.raw<-machalilla.raw[-index_3_10 ,]
+# machalilla.raw<-machalilla.raw[-index_3_07 ,]
+
+#### Add corrected
+machalilla.raw<-rbind(machalilla.raw, cam_1_07, cam_1_10, cam_3_10, cam_3_07)
+# machalilla.raw<-rbind(machalilla.raw, cam_1_10)
+# machalilla.raw<-rbind(machalilla.raw, cam_3_10)
+# machalilla.raw<-rbind(machalilla.raw, cam_3_07)
+
+#  problematic ?
+# which(machalilla.raw$photo_date2 == "2011-11-11")
+# which(machalilla.raw$camera_trap == "CT-PNM-1-10")
+
+
+########## extract yr and month
+machalilla.raw$year<-year(machalilla.raw$photo_date2)
+machalilla.raw$month<-month(machalilla.raw$photo_date2)
+# problem?
+# which(machalilla.raw$year == "2011")
+
+
+####################################
+# make photo calendar type
+####################################
+
+f.calendar.yr(dataset = machalilla.raw, yr_toplot = 1)
+# f.calendar.yr(dataset = machalilla.raw, yr_toplot = 2)
+
+
+```
+
+
+```{r calendar2,cache=TRUE,warning=FALSE,eval=TRUE, echo=FALSE,fig.height=11,fig.width=7}
+f.calendar.yr(dataset = machalilla.raw, yr_toplot = 2)
+```
+
+# Especies registradas
+
+Las especies registradas en el Parque Nacional Machalilla fueron 36
+
+
+```{r sps,cache=TRUE,warning=FALSE,eval=TRUE, echo=FALSE,results='asis'}
+# library(xtable)
+library(dplyr)
+mat.per.sp<-f.matrix.creator2(data = machalilla.raw,year = 2014)
+sp.names<-names(mat.per.sp) # species names
+
+# counting how many (total) records per species by all days
+cont.per.sp<-data.frame(row.names = sp.names)
+for (i in 1:length(mat.per.sp)){
+  cont.per.sp[i,1]<-sum(apply(as.data.frame(mat.per.sp [[i]]),FUN=sum,na.rm=T, MARGIN = 1))
+}
+
+cont.per.sp$especie<-rownames(cont.per.sp)
+colnames(cont.per.sp)<-c("Numero_de_fotos","especie")
+print(as.data.frame(arrange(df = cont.per.sp, desc(Numero_de_fotos))))
+```
+
+# Covariables 
+
+Inicialmente se probó con cinco covariables para ajustar los modelos de ocupación. Estas cinco covariables fueron: Altitud (elev), Pendiente (slope) y Distancia a la carretera pavimentada (dis_rd) como covariables geográficas y altura del dosel, cobertura del dosel y área basal como covariables que se midieron momento de retirar las cámaras. Estas medidas se tomaron usando la metodología del cuadrante centrado en un punto. 
+
+La Altitud se obtuvo de una imagen SRTM del repositorio de [CGIAR](http://srtm.csi.cgiar.org/). La pendiente se infirió a partir de la altitud y la distancia a las carreteras se obtuvo de un mapa del Ministerio del Medio Ambiente del Ecuador.
+
+
+
+```{r covs,cache=TRUE,warning=FALSE,eval=TRUE, echo=FALSE}
+library(raster)
+library(rgdal)
+library(dismo)
+library(biomod2)
+library(spatstat)
+library(sp)
+library(dplyr)
+library(maptools)
+
+machalilla.raw<-read.csv("C:/Users/Diego/Documents/CodigoR/ULEAM/Infor_Caract/Data/CT-PNM-2014.csv") # ojo falta la camara 3-12
+
+long<-unique(machalilla.raw$longitude)
+lati<-unique(machalilla.raw$latitude)
+centercoord<-c(mean(subset(long, long<=1)),mean(unique(subset(lati, lati<=1))))
+coordsubset<-subset(machalilla.raw,select = c(camera_trap,longitude,latitude,first_name_set_camera))
+
+#################################
+# get elevation
+################################
+
+# elevation<-getData('SRTM',lon=centercoord[1], lat=centercoord[2])
+
+ # read elevation from disk
+elevation<- raster("C://Users//Diego//Documents//CodigoR//ULEAM//Infor_Caract//code//srtm_20_13.tif")
+
+cam.cords<-as.data.frame(distinct(coordsubset))
+coordinates(cam.cords) <- ~longitude+latitude #make sppatial data fram
+geo <- CRS("+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0") #def cord
+proj4string(cam.cords)<-geo # set cords
+
+e<-extent (-80.9, -80.5, -1.75,-1.35)
+elevation.crop<-crop(elevation, e)
+
+plot(elevation.crop)
+plot(cam.cords, add=T, col="red")
+title(main="Altitud", sub="en color rojo se muestra donde se instalaron las camaras")
+
+slope<-terrain(elevation.crop, opt='slope', unit='degrees', neighbors=4)
+plot(slope)
+plot(cam.cords, add=T, col="red")
+title(main="Pendiente", sub="en color rojo se muestra donde se instalaron las camaras")
+
+cam.cords.sp<-SpatialPoints(cam.cords)
+proj4string(cam.cords.sp)<-geo 
+# etract values
+elev.ovr <- extract(elevation.crop, cam.cords, method='bilinear')
+slope.ovr <- extract(slope, cam.cords, method='bilinear')
+
+# add to table
+cam.cords$elev<-elev.ovr
+cam.cords$slope<-slope.ovr
+
+############################
+# road
+############################
+
+roadpol <- readShapeSpatial("C:/Users/Diego/Documents/CodigoR/ULEAM/Infor_Caract/shp/machalilla_roadsclip.shp")
+names(roadpol)<-"dist_rd"
+proj4string(roadpol)<-geo
+dist_rd<-over(x = cam.cords, y = roadpol)
+# add to table
+cam.cords$dist_rd<-as.numeric(dist_rd[,1])
+
+roadpol.ow<-as(as(roadpol, "SpatialPolygons"), "owin") # make owin
+cam.and.covs<-as.data.frame(cam.cords)
+
+plot(roadpol, col=topo.colors(65))
+plot(cam.cords, add=T, col="red")
+title(main="Distancia a las carreteras", sub="en color rojo se muestra donde se instalaron las camaras")
+
+
+#####################################################
+## Deforestation
+####################################################
+
+dist.def<-raster("C:/Users/Diego/Documents/CodigoR/ULEAM/Infor_Caract/Data/dist_def.tif")
+
+plot(dist.def)
+plot(cam.cords, add=T, col="red")
+title(main="Distancia a Deforestacion", sub="en color rojo se muestra donde se instalaron las camaras")
+
+# plot(deforestado, col="red", add=T)
+# etract values
+dist.def.ovr <- extract(dist.def, cam.cords, method='bilinear')
+index<-which(is.na(dist.def.ovr)) # detect NA. Means cam is in deforested
+dist.def.ovr [index]<-0 # camera in distance cero to deforested
+
+cam.cords$dist_def<-dist.def.ovr
+# am.and.covs<-as.data.frame(cam.cords)
+
+
+##################################
+## Estructura Veget
+##################################
+
+est.veget<-read.csv("C:/Users/Diego/Documents/CodigoR/ULEAM/Infor_Caract/Data/estructVeget.csv") # read table
+
+cam.and.covs<-cbind(cam.and.covs,est.veget) #Paste covs
+
+
+```
+
+
+```{r functions,cache=TRUE,warning=FALSE,eval=TRUE, echo=FALSE,results='asis'}
+
+f.sp.occu.plot.mat <- function(sp_number){
+    ########################
+    ### shrink to 15
+    ########################
+    
+    library(unmarked)
+    
+    sp15<-f.shrink.matrix.to15(matrix = mat.per.sp[[sp_number]])
+    
+    
+    ########################
+    ### make unmarked object 
+    ########################
+    
+    sp_UMF <- unmarkedFrameOccu(sp15)
+    
+    plot(sp_UMF, panels=1)
+    # title(main=as.character(sp.names[sp_number]))
+     
+}
+
+
+f.sp.occu.models <- function(sp_number){
+    ########################
+    ### shrink to 15
+    ########################
+    
+    library(unmarked)
+    
+    sp15<-f.shrink.matrix.to15(matrix = mat.per.sp[[sp_number]])
+    
+    
+    ########################
+    ### make unmarked object 
+    ########################
+    
+    sp_UMF <- unmarkedFrameOccu(sp15)
+    
+    # plot(sp_UMF, panels=1)
+    # title(main=as.character(sp.names[sp_number]))
+     
+    # add some  covariates
+    siteCovs(sp_UMF) <- cam.and.covs
+    
+    #######################
+    ## occu models 
+    #######################
+    
+    #  covariates of detection and occupancy in that order.
+    fm0 <- occu(~ 1 ~ 1, sp_UMF) 
+    fm1 <- occu(~ 1 ~ elev, sp_UMF)
+    fm2 <- occu(~ 1 ~ slope, sp_UMF)
+    fm3 <- occu(~ 1 ~ dist_rd, sp_UMF)
+    fm4 <- occu(~ elev ~ elev, sp_UMF)
+    fm5 <- occu(~ elev ~ slope, sp_UMF)
+    fm6 <- occu(~ elev ~ dist_rd, sp_UMF)
+    fm7 <- occu(~ basal_a ~ 1, sp_UMF)
+    fm8 <- occu(~ basal_a ~ elev, sp_UMF)
+    fm9 <- occu(~ basal_a ~ canopy_c, sp_UMF)
+    fm10 <- occu(~ 1 ~ canopy_c, sp_UMF)
+    
+    # put the names of each model
+    models <- fitList(
+      'p(.)psi(.)' = fm0,
+      'p(.)psi(elev)' = fm1,
+      'p(.)psi(slope)' = fm2,
+      'p(.)psi(dist_rd)' = fm3,
+      'p(elev)psi(elev)' = fm4,
+      'p(elev)psi(slope)' = fm5,
+      'p(elev)psi(dist_rd)' = fm6,
+      'p(basal_a)psi(.)' = fm7,
+      'p(basal_a)psi(elev)' = fm8,
+      'p(basal_a)psi(canopy_c)' = fm9,
+      'p(.)psi(canopy_c)' = fm10
+      )
+    
+    ms <- modSel(models)
+    # (ms)
+    
+    #This part store some models coeficients in a table (mat_models) to compare on screen
+  ms_AIC_models<-as.data.frame(ms@ Full[1], row.names = NULL) #store model name
+  modelo<-paste("_", as.character(as.character(sp.names[sp_number])), 
+                "_", " models", sep="") # fix model name addin species
+  ma_nPars<-as.data.frame(ms@Full$nPars) #store parameter number
+  ms_AIC_values<- as.data.frame(ms@Full$AIC) #store AIC values
+  ms_AIC_delta<- as.data.frame(ms@Full$delta) #store AIC delta values
+  ms_AIC_AICwt<- as.data.frame(ms@Full$AICwt) #store AIC wt values
+  ms_AIC_cumultw<-as.data.frame(ms@Full$cumltvWt) #store model name
+  ms_m<-as.data.frame(row.names(ms_AIC_models)) #store m number
+  ms_formula<- as.data.frame(ms@Full$formula) #store model formula
+  mat_models <- cbind(ms_AIC_models, ma_nPars, ms_AIC_values, ms_AIC_delta, ms_AIC_AICwt, ms_AIC_cumultw) #paste in matrix
+  colnames(mat_models)<-c(modelo, "nPars",'AIC', "delta", "AICwt", "cumltvWt") # change row names
+
+  ##Print los 7 primeros modelos
+  print(mat_models)
+  # print(spname)
+  # print (mat_models[c(1:7),])
+  # as.character(sp.names[sp_number])
+    
+    
+    
+}
+
+```
+
+
+
+
+## El Cabeza de Mate (_Eira barbara_)
+
+![alt text](https://drive.google.com/open?id=0B2y94C9V2eh_MDhWMGZpTG95NmM&authuser=0)
+El Cabeza de Mate (_Eira barbara_) 
+
+### Matriz de datos colapsada a 15 dias
+
+```{r mat_sp6,cache=TRUE,warning=FALSE,eval=TRUE, echo=FALSE,fig.height=4,fig.width=7}
+f.sp.occu.plot.mat(sp_number = 6)
+```
+
+### Seleccion de Modelos
+```{r modeo_sps6,cache=TRUE,warning=FALSE,eval=TRUE, echo=FALSE,tidy=TRUE,results='markup',out.width=7}
+f.sp.occu.models(sp_number = 6)
+```
+
+## El tigrillo (_Leopardus wiedii_)
+![alt text](https://drive.google.com/open?id=0B2y94C9V2eh_VG1ZZnFyUzdUdjg&authuser=0)
+
+### Matriz de datos colapsada a 15 dias
+
+```{r mat_sp9,cache=TRUE,warning=FALSE,eval=TRUE, echo=FALSE,fig.height=4,fig.width=7}
+f.sp.occu.plot.mat(sp_number = 9)
+```
+
+### Seleccion de Modelos
+```{r modeo_sps9,cache=TRUE,warning=FALSE,eval=TRUE, echo=FALSE,results='markup'}
+f.sp.occu.models(sp_number = 9)
+```
+
+
+## La vaca (_Bos primigenius_)
+### Matriz de datos colapsada a 15 dias
+
+```{r mat_sp10,cache=TRUE,warning=FALSE,eval=TRUE, echo=FALSE,fig.height=4,fig.width=7}
+f.sp.occu.plot.mat(sp_number = 10)
+```
+
+### Seleccion de Modelos
+```{r modeo_sps10,cache=TRUE,warning=FALSE,eval=TRUE, echo=FALSE,results='asis'}
+print(as.character(sp.names[sp_number=10]))
+f.sp.occu.models(sp_number = 10)
+```
+
+## El Perro domestico (_Canis lupus_)
+### Matriz de datos colapsada a 15 dias
+
+```{r mat_sp2,cache=TRUE,warning=FALSE,eval=TRUE, echo=FALSE,fig.height=4,fig.width=7}
+ f.sp.occu.plot.mat(sp_number = 2)
+```
+
+### Seleccion de Modelos
+```{r modeo_sps2,cache=TRUE,warning=FALSE,eval=TRUE, echo=FALSE,results='asis'}
+print(as.character(sp.names[sp_number=2]))
+f.sp.occu.models(sp_number = 2)
+```
+
+## El Oso Hormiero (_Tamandua mexicana_)
+### Matriz de datos colapsada a 15 dias
+
+```{r mat_sp5,cache=TRUE,warning=FALSE,eval=TRUE, echo=FALSE,fig.height=4,fig.width=7}
+ f.sp.occu.plot.mat(sp_number = 5)
+```
+
+### Seleccion de Modelos
+```{r modeo_sps5,cache=TRUE,warning=FALSE,eval=TRUE, echo=FALSE,results='asis'}
+print(as.character(sp.names[sp_number=5]))
+f.sp.occu.models(sp_number = 5)
+```
+
+## El Venado (_Odocoileus virginianus_)
+### Matriz de datos colapsada a 15 dias
+
+```{r mat_sp8,cache=TRUE,warning=FALSE,eval=TRUE, echo=FALSE,fig.height=4,fig.width=7}
+f.sp.occu.plot.mat(sp_number = 8)
+```
+
+### Seleccion de Modelos
+```{r modeo_sps8,cache=TRUE,warning=FALSE,eval=TRUE, echo=FALSE,results='asis'}
+print(as.character(sp.names[sp_number=8]))
+f.sp.occu.models(sp_number = 8)
+```
+
+## El Conejo (_Sylvilagus brasiliensis_)
+### Matriz de datos colapsada a 15 dias
+
+```{r mat_sp11,cache=TRUE,warning=FALSE,eval=TRUE, echo=FALSE,fig.height=4,fig.width=7}
+ f.sp.occu.plot.mat(sp_number = 11)
+```
+
+### Seleccion de Modelos
+```{r modeo_sps11,cache=TRUE,warning=FALSE,eval=TRUE, echo=FALSE,results='asis'}
+print(as.character(sp.names[sp_number=11]))
+f.sp.occu.models(sp_number = 11)
+```
+
+
+
+## El Caballo (_Equus ferus_)
+### Matriz de datos colapsada a 15 dias
+
+```{r mat_sp12,cache=TRUE,warning=FALSE,eval=TRUE, echo=FALSE,fig.height=4,fig.width=7}
+ f.sp.occu.plot.mat(sp_number = 12)
+```
+
+### Seleccion de Modelos
+```{r modeo_sps12,cache=TRUE,warning=FALSE,eval=TRUE, echo=FALSE,results='asis'}
+print(as.character(sp.names[sp_number=12]))
+f.sp.occu.models(sp_number = 12)
+```
+
+
+## La Guanta (_Cuniculus paca_)
+### Matriz de datos colapsada a 15 dias
+
+```{r mat_sp13,cache=TRUE,warning=FALSE,eval=TRUE, echo=FALSE,fig.height=4,fig.width=7}
+ f.sp.occu.plot.mat(sp_number = 13)
+```
+
+### Seleccion de Modelos
+```{r modeo_sps13,cache=TRUE,warning=FALSE,eval=TRUE, echo=FALSE,results='asis'}
+print(as.character(sp.names[sp_number=13]))
+f.sp.occu.models(sp_number = 13)
+```
+
+
+## La Guatusa (_Dasyprocta punctata_)
+### Matriz de datos colapsada a 15 dias
+
+```{r mat_sp19,cache=TRUE,warning=FALSE,eval=TRUE, echo=FALSE,fig.height=4,fig.width=7}
+ f.sp.occu.plot.mat(sp_number = 19)
+```
+
+### Seleccion de Modelos
+```{r modeo_sps19,cache=TRUE,warning=FALSE,eval=TRUE, echo=FALSE,results='asis'}
+print(as.character(sp.names[sp_number=19]))
+f.sp.occu.models(sp_number = 19)
+```
+
+## El Pecari (_Pecari tajacu_)
+### Matriz de datos colapsada a 15 dias
+
+```{r mat_sp20,cache=TRUE,warning=FALSE,eval=TRUE, echo=FALSE,fig.height=4,fig.width=7}
+ f.sp.occu.plot.mat(sp_number = 20)
+```
+
+### Seleccion de Modelos
+```{r modeo_sps20,cache=TRUE,warning=FALSE,eval=TRUE, echo=FALSE,results='asis'}
+print(as.character(sp.names[sp_number=20]))
+f.sp.occu.models(sp_number = 20)
+```
+
+## El Armadillo (_Dasypus novemcinctus_)
+### Matriz de datos colapsada a 15 dias
+
+```{r mat_sp22,cache=TRUE,warning=FALSE,eval=TRUE, echo=FALSE,fig.height=4,fig.width=7}
+ f.sp.occu.plot.mat(sp_number = 22)
+```
+
+### Seleccion de Modelos
+```{r modeo_sps22,cache=TRUE,warning=FALSE,eval=TRUE, echo=FALSE,results='asis'}
+print(as.character(sp.names[sp_number=22]))
+f.sp.occu.models(sp_number = 22)
+```
+
+
+
+## La Ardilla de Guayaquil (_Sciurus stramineus_)
+### Matriz de datos colapsada a 15 dias
+
+```{r mat_sp23,cache=TRUE,warning=FALSE,eval=TRUE, echo=FALSE,fig.height=4,fig.width=7}
+ f.sp.occu.plot.mat(sp_number = 23)
+```
+
+### Seleccion de Modelos
+```{r modeo_sps23,cache=TRUE,warning=FALSE,eval=TRUE, echo=FALSE,results='asis'}
+print(as.character(sp.names[sp_number=23]))
+f.sp.occu.models(sp_number = 23)
+```
+
